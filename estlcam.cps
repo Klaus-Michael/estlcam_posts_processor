@@ -11,7 +11,7 @@
 
 description = "Generic EstlCAM based on LinuxCNC (EMC2) mod by KMS";
 vendor = "ToniBaier mod by KMS";
-vendorUrl = "https://www.startpage.com/";
+vendorUrl = "https://github.com/Klaus-Michael/estlcam_posts_processor";
 legal = "Copyright (C)2017-06-06 by Toni Baier mod by KMS 2020-02-13";
 certificationLevel = 2;
 minimumRevision = 24000;
