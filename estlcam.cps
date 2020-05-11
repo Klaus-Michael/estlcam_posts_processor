@@ -46,7 +46,9 @@ properties = {
   useParametricFeed: false, // specifies that feed should be output using Q values
   showNotes: true, // specifies that operation notes should be output
   useG28: false, // turn on to use G28 instead of G53 for machine retracts
-  notifyOnSpindleRPMChange: false //displays a M0 notifacation if the Spindle Speed is changed, for manual RPM Control
+  notifyOnSpindleRPMChange: false, //displays a M0 notifacation if the Spindle Speed is changed, for manual RPM Control
+  printstocksize: true, //prints the stock size in the header
+  printtravellimits: true // prints the max travel limits in the header
 };
 
 
@@ -213,8 +215,71 @@ function onOpen() {
     }
   }
 
-  // dump tool information
-  if (properties.writeTools) {
+  if(properties.printtravellimits)
+  {
+    // output Stock tand Tavel Limits
+    var toolZRanges = {};
+    var vectorX = new Vector(1, 0, 0);
+    var vectorY = new Vector(0, 1, 0);
+    var ranges = {
+      x: { min: undefined, max: undefined },
+      y: { min: undefined, max: undefined },
+      z: { min: undefined, max: undefined },
+    };
+    var handleMinMax = function(pair, range) {
+      var rmin = range.getMinimum();
+      var rmax = range.getMaximum();
+      if (pair.min == undefined || pair.min > rmin) {
+        pair.min = rmin;
+      }
+      if (pair.max == undefined || pair.min < rmin) {
+        pair.max = rmax;
+      }
+    }
+
+    var numberOfSections = getNumberOfSections();
+    for (var i = 0; i < numberOfSections; ++i) {
+      var section = getSection(i);
+      var tool = section.getTool();
+      var zRange = section.getGlobalZRange();
+      var xRange = section.getGlobalRange(vectorX);
+      var yRange = section.getGlobalRange(vectorY);
+      handleMinMax(ranges.x, xRange);
+      handleMinMax(ranges.y, yRange);
+      handleMinMax(ranges.z, zRange);
+      if (is3D() && properties.commentWriteTools) {
+        if (toolZRanges[tool.number]) {
+          toolZRanges[tool.number].expandToRange(zRange);
+        } else {
+          toolZRanges[tool.number] = zRange;
+        }
+      }
+    }
+
+    writeComment(" ");
+    writeComment(" Ranges table:");
+    writeComment(" X: Min=" + xyzFormat.format(ranges.x.min) + " Max=" + xyzFormat.format(ranges.x.max) + " Size=" + xyzFormat.format(ranges.x.max - ranges.x.min));
+    writeComment(" Y: Min=" + xyzFormat.format(ranges.y.min) + " Max=" + xyzFormat.format(ranges.y.max) + " Size=" + xyzFormat.format(ranges.y.max - ranges.y.min));
+    writeComment(" Z: Min=" + xyzFormat.format(ranges.z.min) + " Max=" + xyzFormat.format(ranges.z.max) + " Size=" + xyzFormat.format(ranges.z.max - ranges.z.min));
+    writeComment(" ");
+  }
+
+  if(properties.printstocksize)
+  {
+    var workpiece = getWorkpiece();
+    var delta = Vector.diff(workpiece.upper, workpiece.lower);
+    if (delta.isNonZero()) {
+      var xWorkPiece = Math.abs(workpiece.upper.x-workpiece.lower.x);
+      var yWorkPiece = Math.abs(workpiece.upper.y-workpiece.lower.y);
+      var zWorkPiece = Math.abs(workpiece.upper.z-workpiece.lower.z);
+      writeComment("Stock Size X" + xyzFormat.format(xWorkPiece ) + " Y" + xyzFormat.format(yWorkPiece) + " Z" + xyzFormat.format(zWorkPiece));
+      writeComment(" ");
+    }
+  }
+
+ // dump tool information
+ if (properties.writeTools) {
+   writeComment("Tool Table");
     var zRanges = {};
     if (is3D()) {
       var numberOfSections = getNumberOfSections();
@@ -765,7 +830,7 @@ function onSection() {
 
   if (insertToolCall || retracted || (!isFirstSection() && getPreviousSection().isMultiAxis())) {
     var lengthOffset = tool.lengthOffset;
-    if (lengthOffset > 99) {
+    if (lengthOffset > 9999) {
       error(localize("Length offset out of range."));
       return;
     }
