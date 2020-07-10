@@ -691,12 +691,11 @@ function onSection() {
       onCommand(COMMAND_OPTIONAL_STOP);
     }
 
-    if (tool.number > 99) {
+    if (tool.number > 9999) {
       warning(localize("Tool number exceeds maximum value."));
     }
 
-    writeBlock("T" + toolFormat.format(tool.number), mFormat.format(6));
-	writeComment( toolFormat.format(tool.number)+" " +getToolTypeName(tool.type)+ " " + tool.description+ " D" + xyzFormat.format(tool.diameter) + " Spindel Speed "+ tool.spindleRPM );
+    writeBlock(mFormat.format(6), "(T" + toolFormat.format(tool.number) +" - "+ tool.description + " - " + getToolTypeName(tool.type) + " - D" + xyzFormat.format(tool.diameter)+ " - F"+xyzFormat.format(tool.fluteLength) + " - RPM "+ tool.spindleRPM +  ")");
     if (tool.comment) {
       writeComment(tool.comment);
     }
