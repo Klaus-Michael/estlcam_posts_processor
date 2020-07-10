@@ -299,16 +299,15 @@ function onOpen() {
     if (tools.getNumberOfTools() > 0) {
       for (var i = 0; i < tools.getNumberOfTools(); ++i) {
         var tool = tools.getTool(i);
-        var comment = "T" + toolFormat.format(tool.number) + "  " +
-          "D=" + xyzFormat.format(tool.diameter) + " " +
-          localize("CR") + "=" + xyzFormat.format(tool.cornerRadius);
+		var comment = "T" + toolFormat.format(tool.number) +" - "+ tool.description + " - " + getToolTypeName(tool.type) + " - D" + xyzFormat.format(tool.diameter)+ " - F"+xyzFormat.format(tool.fluteLength) + 
+          localize(" - CR") + "=" + xyzFormat.format(tool.cornerRadius);
         if ((tool.taperAngle > 0) && (tool.taperAngle < Math.PI)) {
           comment += " " + localize("TAPER") + "=" + taperFormat.format(tool.taperAngle) + localize("deg");
         }
         if (zRanges[tool.number]) {
           comment += " - " + localize("ZMIN") + "=" + xyzFormat.format(zRanges[tool.number].getMinimum());
         }
-        comment += " - " + getToolTypeName(tool.type);
+        
         writeComment(comment);
       }
     }
@@ -695,7 +694,7 @@ function onSection() {
       warning(localize("Tool number exceeds maximum value."));
     }
 
-    writeBlock(mFormat.format(6), "(T" + toolFormat.format(tool.number) +" - "+ tool.description + " - " + getToolTypeName(tool.type) + " - D" + xyzFormat.format(tool.diameter)+ " - F"+xyzFormat.format(tool.fluteLength) + " - RPM "+ tool.spindleRPM +  ")");
+    writeBlock(mFormat.format(6), "(T" + toolFormat.format(tool.number) +" - "+ tool.description + " - " + getToolTypeName(tool.type) + " - D" + xyzFormat.format(tool.diameter)+ " - F"+xyzFormat.format(tool.fluteLength)+" - CR" + "=" + xyzFormat.format(tool.cornerRadius) + " - RPM "+ tool.spindleRPM +  ")");
     if (tool.comment) {
       writeComment(tool.comment);
     }
