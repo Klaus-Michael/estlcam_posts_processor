@@ -1,4 +1,4 @@
-/**
+ /**
   Copyright (C) 2012-2015 by Autodesk, Inc.
   All rights reserved.
 
@@ -12,7 +12,7 @@
 description = "Generic EstlCAM based on LinuxCNC (EMC2) mod by KMS";
 vendor = "ToniBaier mod by KMS";
 vendorUrl = "https://github.com/Klaus-Michael/estlcam_posts_processor";
-legal = "Copyright (C)2017-06-06 by Toni Baier mod by KMS 2020-02-13";
+legal = "Copyright (C)2017-06-06 by Toni Baier mod by KMS 2020-09-01";
 certificationLevel = 2;
 minimumRevision = 24000;
 
@@ -299,8 +299,8 @@ function onOpen() {
     if (tools.getNumberOfTools() > 0) {
       for (var i = 0; i < tools.getNumberOfTools(); ++i) {
         var tool = tools.getTool(i);
-		var comment = "T" + toolFormat.format(tool.number) +" - "+ tool.description + " - " + getToolTypeName(tool.type) + " - D" + xyzFormat.format(tool.diameter)+ " - F"+xyzFormat.format(tool.fluteLength) + 
-          localize(" - CR") + "=" + xyzFormat.format(tool.cornerRadius);
+		var comment = "T" + toolFormat.format(tool.number) +" - "+ tool.description + " - " + getToolTypeName(tool.type) + " - D" + xyzFormat.format(tool.diameter)+ " - FL"+xyzFormat.format(tool.fluteLength) + 
+          localize(" - CR") + "=" + xyzFormat.format(tool.cornerRadius)+" - F" + xyzFormat.format(tool.numberOfFlutes);
         if ((tool.taperAngle > 0) && (tool.taperAngle < Math.PI)) {
           comment += " " + localize("TAPER") + "=" + taperFormat.format(tool.taperAngle) + localize("deg");
         }
@@ -350,16 +350,9 @@ function onOpen() {
   }
 
   // absolute coordinates, feed per min, and incremental arc center mode
-  writeBlock(gAbsIncModal.format(90), gFeedModeModal.format(94), gPlaneModal.format(17), gFormat.format(91.1));
+  //writeBlock(gAbsIncModal.format(90), gFeedModeModal.format(94), gPlaneModal.format(17), gFormat.format(91.1));
 
-  switch (unit) {
-  case IN:
-    writeBlock(gUnitModal.format(20));
-    break;
-  case MM:
-    writeBlock(gUnitModal.format(21));
-    break;
-  }
+
 }
 
 function onPassThrough(text) {
@@ -649,12 +642,12 @@ function onSection() {
     
     // retract to safe plane
     retracted = true;
-    if (properties.useG28) {
+  /*  if (properties.useG28) {
       writeBlock(gFormat.format(28), gAbsIncModal.format(91), "Z" + xyzFormat.format(0)); // retract
       writeBlock(gAbsIncModal.format(90));
     } else {
       writeBlock(gAbsIncModal.format(90), gFormat.format(53), gMotionModal.format(0), "Z" + xyzFormat.format(0)); // retract
-    }
+    }*/
     zOutput.reset();
   }
 
@@ -694,7 +687,7 @@ function onSection() {
       warning(localize("Tool number exceeds maximum value."));
     }
 
-    writeBlock(mFormat.format(6), "(T" + toolFormat.format(tool.number) +" - "+ tool.description + " - " + getToolTypeName(tool.type) + " - D" + xyzFormat.format(tool.diameter)+ " - F"+xyzFormat.format(tool.fluteLength)+" - CR" + "=" + xyzFormat.format(tool.cornerRadius) + " - RPM "+ tool.spindleRPM +  ")");
+    writeBlock(mFormat.format(6), "(T" + toolFormat.format(tool.number) +" - "+ tool.description + " - " + getToolTypeName(tool.type) + " - D" + xyzFormat.format(tool.diameter)+ " - FL"+xyzFormat.format(tool.fluteLength)+" - CR" + "=" + xyzFormat.format(tool.cornerRadius) + " - F"+xyzFormat.format(tool.numberOfFlutes) +  " - RPM "+ tool.spindleRPM +  ")");
     if (tool.comment) {
       writeComment(tool.comment);
     }
@@ -759,30 +752,6 @@ function onSection() {
   if (insertToolCall) { // force work offset when changing tool
     currentWorkOffset = undefined;
   }
-  var workOffset = currentSection.workOffset;
-  if (workOffset == 0) {
-    warningOnce(localize("Work offset has not been specified. Using G54 as WCS."), WARNING_WORK_OFFSET);
-    workOffset = 1;
-  }
-  if (workOffset > 0) {
-    if (workOffset > 6) {
-      var p = workOffset - 6; // 1->...
-      if (p > 3) {
-        error(localize("Work offset out of range."));
-        return;
-      } else {
-        if (workOffset != currentWorkOffset) {
-          writeBlock(gFormat.format(59.1), "P" + p); // G59.1P
-          currentWorkOffset = workOffset;
-        }
-      }
-    } else {
-      if (workOffset != currentWorkOffset) {
-        writeBlock(gFormat.format(53 + workOffset)); // G54->G59
-        currentWorkOffset = workOffset;
-      }
-    }
-  }
 
   forceXYZ();
 
@@ -834,17 +803,17 @@ function onSection() {
     }
 
     gMotionModal.reset();
-    writeBlock(gPlaneModal.format(17));
+
     
     if (!machineConfiguration.isHeadConfiguration()) {
       writeBlock(
-        gAbsIncModal.format(90),
+        //gAbsIncModal.format(90),
         gMotionModal.format(0), xOutput.format(initialPosition.x), yOutput.format(initialPosition.y)
       );
       writeBlock(gMotionModal.format(0), gFormat.format(43), zOutput.format(initialPosition.z), hFormat.format(lengthOffset));
     } else {
       writeBlock(
-        gAbsIncModal.format(90),
+       // gAbsIncModal.format(90),
         gMotionModal.format(0),
         gFormat.format(43), xOutput.format(initialPosition.x),
         yOutput.format(initialPosition.y),
@@ -855,7 +824,7 @@ function onSection() {
     gMotionModal.reset();
   } else {
     writeBlock(
-      gAbsIncModal.format(90),
+      //gAbsIncModal.format(90),
       gMotionModal.format(0),
       xOutput.format(initialPosition.x),
       yOutput.format(initialPosition.y)
@@ -891,9 +860,6 @@ function onSpindleSpeed(spindleSpeed) {
   writeBlock(sOutput.format(spindleSpeed));
 }
 
-function onCycle() {
-  writeBlock(gPlaneModal.format(17));
-}
 
 function getCommonCycle(x, y, z, r) {
   forceXYZ(); // force xyz on first drill hole of any cycle
@@ -1121,7 +1087,6 @@ function onLinear(_x, _y, _z, feed) {
       if (d > 99) {
         warning(localize("The diameter offset exceeds the maximum value."));
       }
-      writeBlock(gPlaneModal.format(17));
       switch (radiusCompensation) {
       case RADIUS_COMPENSATION_LEFT:
         dOutput.reset();
@@ -1207,13 +1172,13 @@ function onCircular(clockwise, cx, cy, cz, x, y, z, feed) {
     }
     switch (getCircularPlane()) {
     case PLANE_XY:
-      writeBlock(gAbsIncModal.format(90), gPlaneModal.format(17), gMotionModal.format(clockwise ? 2 : 3), iOutput.format(cx - start.x, 0), jOutput.format(cy - start.y, 0), getFeed(feed));
+      writeBlock(gMotionModal.format(clockwise ? 2 : 3), iOutput.format(cx - start.x, 0), jOutput.format(cy - start.y, 0), getFeed(feed));
       break;
     case PLANE_ZX:
-      writeBlock(gAbsIncModal.format(90), gPlaneModal.format(18), gMotionModal.format(clockwise ? 2 : 3), iOutput.format(cx - start.x, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
+      writeBlock(gMotionModal.format(clockwise ? 2 : 3), iOutput.format(cx - start.x, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
       break;
     case PLANE_YZ:
-      writeBlock(gAbsIncModal.format(90), gPlaneModal.format(19), gMotionModal.format(clockwise ? 2 : 3), jOutput.format(cy - start.y, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
+      writeBlock(gMotionModal.format(clockwise ? 2 : 3), jOutput.format(cy - start.y, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
       break;
     default:
       linearize(tolerance);
@@ -1221,13 +1186,13 @@ function onCircular(clockwise, cx, cy, cz, x, y, z, feed) {
   } else if (!properties.useRadius) {
     switch (getCircularPlane()) {
     case PLANE_XY:
-      writeBlock(gAbsIncModal.format(90), gPlaneModal.format(17), gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), iOutput.format(cx - start.x, 0), jOutput.format(cy - start.y, 0), getFeed(feed));
+      writeBlock(gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), iOutput.format(cx - start.x, 0), jOutput.format(cy - start.y, 0), getFeed(feed));
       break;
     case PLANE_ZX:
-      writeBlock(gAbsIncModal.format(90), gPlaneModal.format(18), gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), iOutput.format(cx - start.x, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
+      writeBlock(gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), iOutput.format(cx - start.x, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
       break;
     case PLANE_YZ:
-      writeBlock(gAbsIncModal.format(90), gPlaneModal.format(19), gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), jOutput.format(cy - start.y, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
+      writeBlock(gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), jOutput.format(cy - start.y, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
       break;
     default:
       linearize(tolerance);
@@ -1239,13 +1204,13 @@ function onCircular(clockwise, cx, cy, cz, x, y, z, feed) {
     }
     switch (getCircularPlane()) {
     case PLANE_XY:
-      writeBlock(gPlaneModal.format(17), gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), "R" + rFormat.format(r), getFeed(feed));
+      writeBlock( gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), "R" + rFormat.format(r), getFeed(feed));
       break;
     case PLANE_ZX:
-      writeBlock(gPlaneModal.format(18), gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), "R" + rFormat.format(r), getFeed(feed));
+      writeBlock( gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), "R" + rFormat.format(r), getFeed(feed));
       break;
     case PLANE_YZ:
-      writeBlock(gPlaneModal.format(19), gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), "R" + rFormat.format(r), getFeed(feed));
+      writeBlock(gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), "R" + rFormat.format(r), getFeed(feed));
       break;
     default:
       linearize(tolerance);
@@ -1299,10 +1264,6 @@ function onCommand(command) {
 }
 
 function onSectionEnd() {
-  if (currentSection.isMultiAxis()) {
-    writeBlock(gMotionModal.format(49));
-  }
-  writeBlock(gPlaneModal.format(17));
 
   if (((getCurrentSectionId() + 1) >= getNumberOfSections()) ||
       (tool.number != getNextSection().getTool().number)) {
@@ -1315,11 +1276,11 @@ function onSectionEnd() {
 function onClose() {
   onCommand(COMMAND_COOLANT_OFF);
 
-  if (properties.useG28) {
+/*  if (properties.useG28) {
     writeBlock(gFormat.format(28), gAbsIncModal.format(91), "Z" + xyzFormat.format(0)); // retract
   } else {
     writeBlock(gAbsIncModal.format(90), gFormat.format(53), gMotionModal.format(0), "Z" + xyzFormat.format(0)); // retract
-  }
+  }*/
   zOutput.reset();
 
   setWorkPlane(new Vector(0, 0, 0)); // reset working plane
@@ -1343,6 +1304,6 @@ function onClose() {
 
   onImpliedCommand(COMMAND_END);
   onImpliedCommand(COMMAND_STOP_SPINDLE);
-  writeBlock(mFormat.format(30)); // stop program, spindle stop, coolant off
+  writeBlock(mFormat.format(05)); // stop program, spindle stop, coolant off
   writeln("%");
 }
